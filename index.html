@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swedish Flashcards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one centered study card with a quiet control bar above it and big mark buttons below. */
+:root {
+  --paper: #f2f3ef;
+  --card: #ffffff;
+  --ink: #15201b;
+  --muted: #5d6a63;
+  --line: #d9ddd5;
+  --berry: #a8203a;
+  --berry-soft: #f6e3e7;
+  --moss: #2f6b4f;
+  --moss-soft: #e0eee6;
+  --amber: #8a5a00;
+  --amber-soft: #f7ecd2;
+  --shadow: 0 1px 2px rgba(21,32,27,.06), 0 12px 32px rgba(21,32,27,.08);
+  --display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121a16; --card: #1a2420; --ink: #eef2ee; --muted: #9aa8a0; --line: #2c3a34;
+    --berry: #ff7d93; --berry-soft: #3a1d25; --moss: #7fd0a4; --moss-soft: #1c3328;
+    --amber: #f0c36a; --amber-soft: #3a2e12;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121a16; --card: #1a2420; --ink: #eef2ee; --muted: #9aa8a0; --line: #2c3a34;
+  --berry: #ff7d93; --berry-soft: #3a1d25; --moss: #7fd0a4; --moss-soft: #1c3328;
+  --amber: #f0c36a; --amber-soft: #3a2e12;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+body { min-height: 100%; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--berry); outline-offset: 2px; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: 1.75rem; letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+h1 span { color: var(--berry); }
+.sub { color: var(--muted); font-size: .9rem; }
+.bar { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; padding: 7px 12px; border-radius: 7px; font-weight: 500; font-size: .9rem; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.seg button:disabled { opacity: .35; cursor: not-allowed; }
+.seg .n { font-family: var(--mono); font-size: .75rem; opacity: .7; margin-left: 6px; }
+.label { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; min-width: 64px; }
+.tool { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 7px 12px; font-size: .9rem; font-weight: 500; }
+.tool:hover { border-color: var(--ink); }
+.progress { display: flex; align-items: center; gap: 12px; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.track { flex: 1; height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; display: flex; }
+.track i { display: block; height: 100%; }
+.track .k { background: var(--moss); }
+.track .l { background: var(--amber); }
+.stage { perspective: 1400px; }
+.card { width: 100%; background: transparent; border: 0; padding: 0; text-align: left; display: block; }
+.inner { display: grid; transition: transform .45s cubic-bezier(.3,.7,.2,1); transform-style: preserve-3d; }
+.card[data-flipped="true"] .inner { transform: rotateY(180deg); }
+.face { grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 28px 28px 24px; min-height: 330px; display: flex; flex-direction: column; gap: 14px; }
+.face.back { transform: rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) { .inner { transition: none; } }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.chip.irr { background: var(--berry-soft); color: var(--berry); border-color: transparent; }
+.chip.reg { background: var(--moss-soft); color: var(--moss); border-color: transparent; }
+.chip.star { background: var(--amber-soft); color: var(--amber); border-color: transparent; }
+.chip.known { background: var(--moss-soft); color: var(--moss); border-color: transparent; }
+.chip.learn { background: var(--amber-soft); color: var(--amber); border-color: transparent; }
+.big { font-family: var(--display); font-weight: 600; font-size: clamp(2rem, 7vw, 3.1rem); line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; margin: auto 0; }
+.big.sm { font-size: clamp(1.5rem, 5vw, 2.1rem); line-height: 1.2; }
+.hint { color: var(--muted); font-size: .85rem; margin-top: auto; }
+.mean { font-size: 1.05rem; color: var(--muted); }
+.ans { font-family: var(--display); font-weight: 600; font-size: clamp(1.6rem, 5.5vw, 2.3rem); line-height: 1.15; margin: 0; text-wrap: balance; }
+.ans.sv { color: var(--berry); }
+.sec { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.ex { border-left: 3px solid var(--moss); padding: 2px 0 2px 12px; font-size: 1rem; }
+.note { border-left: 3px solid var(--amber); padding: 2px 0 2px 12px; color: var(--muted); font-size: .9rem; }
+table.forms { border-collapse: collapse; width: 100%; font-size: 1rem; }
+table.forms th, table.forms td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+table.forms th { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; width: 38%; }
+table.forms td { font-family: var(--mono); font-weight: 500; }
+table.forms td b { color: var(--berry); font-weight: 600; }
+.mini { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--mono); font-size: .9rem; }
+.mini span em { font-style: normal; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; margin-right: 6px; font-family: var(--body); }
+.controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mark { border: 2px solid var(--line); background: var(--card); border-radius: 14px; padding: 14px 12px; font-weight: 600; font-size: 1rem; display: flex; flex-direction: column; gap: 2px; align-items: center; }
+.mark small { font-weight: 400; color: var(--muted); font-size: .78rem; }
+.mark.learn:hover { border-color: var(--amber); background: var(--amber-soft); }
+.mark.know:hover { border-color: var(--moss); background: var(--moss-soft); }
+.nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.count { font-family: var(--mono); font-size: .9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.empty { background: var(--card); border: 1px dashed var(--line); border-radius: 18px; padding: 48px 24px; text-align: center; color: var(--muted); }
+.empty strong { display: block; font-family: var(--display); font-size: 1.4rem; color: var(--ink); margin-bottom: 6px; }
+.keys { color: var(--muted); font-size: .8rem; }
+kbd { font-family: var(--mono); font-size: .75rem; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; background: var(--card); }
+@media (max-width: 480px) {
+  .face { padding: 22px 18px 18px; min-height: 360px; }
+  .label { min-width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Swedish <span>flashcards</span></h1>
+    <div class="sub" id="sub"></div>
+  </header>
+
+  <section class="bar" aria-label="Deck settings">
+    <div class="row"><span class="label">Deck</span><div class="seg" id="decks" role="group" aria-label="Deck"></div></div>
+    <div class="row"><span class="label">Mode</span><div class="seg" id="modes" role="group" aria-label="Mode"></div></div>
+    <div class="row"><span class="label">Show</span><div class="seg" id="filters" role="group" aria-label="Filter"></div>
+      <button class="tool" id="shuffle" type="button">Shuffle</button>
+      <button class="tool" id="reset" type="button">Reset order</button>
+    </div>
+    <div class="progress"><div class="track" id="track" aria-hidden="true"></div><span id="prog"></span></div>
+  </section>
+
+  <main id="main" class="stage"></main>
+
+  <div class="controls" id="controls">
+    <button class="mark learn" id="btnLearn" type="button">Still learning <small>key 1</small></button>
+    <button class="mark know" id="btnKnow" type="button">I know it <small>key 2</small></button>
+  </div>
+  <div class="nav">
+    <button class="tool" id="prev" type="button">Previous</button>
+    <button class="tool" id="star" type="button" aria-pressed="false">Mark important</button>
+    <span class="count" id="count"></span>
+    <button class="tool" id="next" type="button">Next</button>
+  </div>
+  <div class="keys"><kbd>Space</kbd> flip &nbsp; <kbd>←</kbd> <kbd>→</kbd> move &nbsp; <kbd>1</kbd> learning &nbsp; <kbd>2</kbd> know &nbsp; <kbd>S</kbd> important</div>
+</div>
+
+<script>
+/* ---------- Data (copied from the Notion tables on 4 Nov 2026) ---------- */
+var VERBS = [
+ {sv:"att bli",en:"to become",pl:"stać się, stawać się",f:["blir","blev","har blivit"],imp:"bli",t:"Irregular",ex:"Du har blivit känslokall. Jag blev sjuk igår.",note:"Same form for jag, du, hon, han, hen, vi, ni, de. Also: att bli förkyld."},
+ {sv:"att finnas",en:"to exist, there is/are",pl:"istnieć, być (znajdować się)",f:["finns","fanns","har funnits"],imp:"",t:"Irregular",ex:"Det finns många gatuhundar i Thailand.",note:"Passive-form verb (-s). No imperative."},
+ {sv:"att flyga",en:"to fly",pl:"latać, lecieć",f:["flyger","flög","har flugit"],imp:"flyg",t:"Irregular",ex:"Kan människor flyga?",note:""},
+ {sv:"att få",en:"to get, may (be allowed to)",pl:"dostać, wolno",f:["får","fick","har fått"],imp:"få",t:"Irregular",ex:"Jag har inte fått något svar än. Får man röka här?",note:"Får inte = not allowed. Also: att få förkylning."},
+ {sv:"att glömma (bort)",en:"to forget",pl:"zapomnieć",f:["glömmer","glömde","har glömt"],imp:"glöm",t:"Regular -er",ex:"Jag glömde bajspåsen hemma.",note:"att glömma hemma = to forget to take from home."},
+ {sv:"att gå",en:"to go, to walk",pl:"iść",f:["går","gick","har gått"],imp:"gå",t:"Irregular",ex:"Vi kan gå på bio om du vill.",note:""},
+ {sv:"att hämta",en:"to fetch, to pick up",pl:"odebrać, przynieść",f:["hämtar","hämtade","har hämtat"],imp:"hämta",t:"Regular -ar",ex:"Vi hämtade henne från ett hundhem. Jag skulle vilja hämta ut ett paket.",note:"hämta ut = collect (a parcel)."},
+ {sv:"att kissa",en:"to pee",pl:"siusiać",f:["kissar","kissade","har kissat"],imp:"kissa",t:"Regular -ar",ex:"Hundar får inte kissa här.",note:""},
+ {sv:"att klappa",en:"to pet, to pat",pl:"głaskać",f:["klappar","klappade","har klappat"],imp:"klappa",t:"Regular -ar",ex:"Får jag klappa hunden?",note:""},
+ {sv:"att komma",en:"to come",pl:"przyjść, przyjechać",f:["kommer","kom","har kommit"],imp:"kom",t:"Irregular",ex:"Jag kommer att åka till Polen i år. Hon kommer från ett hundhem på Irland.",note:"kommer att + infinitive = future. komma från = to come from."},
+ {sv:"att kunna",en:"can, to be able to",pl:"móc, umieć",f:["kan","kunde","har kunnat"],imp:"",t:"Irregular",ex:"Jag har inte kunnat nå dig. Kan du prata långsamt?",note:"Modal verb. Followed by the infinitive without att. No imperative."},
+ {sv:"att köpa",en:"to buy",pl:"kupić",f:["köper","köpte","har köpt"],imp:"köp",t:"Regular -er",ex:"Jag har inte köpt julklappar än. Har du köpt någon biljett än?",note:""},
+ {sv:"att lämna tillbaka",en:"to return, to give back",pl:"oddać",f:["lämnar tillbaka","lämnade tillbaka","har lämnat tillbaka"],imp:"lämna tillbaka",t:"Regular -ar",ex:"Jag skulle vilja lämna tillbaka paketet.",note:""},
+ {sv:"att nå",en:"to reach",pl:"dosięgnąć, dotrzeć do",f:["når","nådde","har nått"],imp:"nå",t:"Regular -er",ex:"Jag kunde inte nå dig igår. Jag når inte till skåpet.",note:"",star:true},
+ {sv:"att prata",en:"to talk, to speak",pl:"mówić, rozmawiać",f:["pratar","pratade","har pratat"],imp:"prata",t:"Regular -ar",ex:"Kan du prata långsamt?",note:""},
+ {sv:"att rasta",en:"to walk (a dog)",pl:"wyprowadzać psa",f:["rastar","rastade","har rastat"],imp:"rasta",t:"Regular -ar",ex:"Jag rastar hunden. Du får inte rasta hunden.",note:""},
+ {sv:"att råka ut för",en:"to run into, to have (an accident)",pl:"ulec (wypadkowi), natknąć się na",f:["råkar ut för","råkade ut för","har råkat ut för"],imp:"",t:"Regular -ar",ex:"Jag råkade ut för en olycka igår.",note:"Phrasal verb. Ut för stays after the verb in every form."},
+ {sv:"att röka",en:"to smoke",pl:"palić",f:["röker","rökte","har rökt"],imp:"rök",t:"Regular -er",ex:"Får man röka här?",note:""},
+ {sv:"att skicka tillbaka",en:"to send back",pl:"odesłać",f:["skickar tillbaka","skickade tillbaka","har skickat tillbaka"],imp:"skicka tillbaka",t:"Regular -ar",ex:"",note:""},
+ {sv:"att ta",en:"to take",pl:"wziąć",f:["tar","tog","har tagit"],imp:"ta",t:"Irregular",ex:"Vi tog henne när hon var 11 månader gammal.",note:""},
+ {sv:"att vara",en:"to be",pl:"być",f:["är","var","har varit"],imp:"var",t:"Irregular",ex:"Jag har varit sjuk i en vecka nu.",note:"Same form for all persons."},
+ {sv:"att vilja",en:"to want",pl:"chcieć",f:["vill","ville","har velat"],imp:"",t:"Irregular",ex:"Jag vill åka till Paris i år. Jag skulle vilja åka till Paris i år.",note:"skulle vilja = would like (chciałabym). Noun: en vilja = will (wola)."},
+ {sv:"att åka",en:"to travel, to go (by vehicle)",pl:"jechać, pojechać",f:["åker","åkte","har åkt"],imp:"åk",t:"Regular -er",ex:"Jag vill åka till Paris i år.",note:""}
+];
+var NOUNS = [
+ {sv:"bajs",a:"ett",d:"bajset",p:"bajs (not used in plural)",dp:"-",en:"poop",pl:"kupa",ex:""},
+ {sv:"bajskorv",a:"en",d:"bajskorven",p:"bajskorvar",dp:"bajskorvarna",en:"turd",pl:"kupa (dosłownie kiełbaska)",ex:""},
+ {sv:"bajspåse",a:"en",d:"bajspåsen",p:"bajspåsar",dp:"bajspåsarna",en:"poop bag",pl:"woreczek na psie odchody",ex:"Jag glömde bajspåsen hemma."},
+ {sv:"barn",a:"ett",d:"barnet",p:"barn",dp:"barnen",en:"child",pl:"dziecko",ex:""},
+ {sv:"gatuhund",a:"en",d:"gatuhunden",p:"gatuhundar",dp:"gatuhundarna",en:"street dog",pl:"pies uliczny",ex:"Det finns många gatuhundar i Thailand."},
+ {sv:"hund",a:"en",d:"hunden",p:"hundar",dp:"hundarna",en:"dog",pl:"pies",ex:"Får man klappa hunden?"},
+ {sv:"hundhem",a:"ett",d:"hundhemmet",p:"hundhem",dp:"hundhemmen",en:"dog shelter",pl:"schronisko dla psów",ex:"Hon kommer från ett hundhem på Irland."},
+ {sv:"hundägare",a:"en",d:"hundägaren",p:"hundägare",dp:"hundägarna",en:"dog owner",pl:"właściciel psa",ex:""},
+ {sv:"husse",a:"en",d:"hussen",p:"hussar",dp:"hussarna",en:"dog owner (male)",pl:"właściciel (psa, mężczyzna)",ex:""},
+ {sv:"kund",a:"en",d:"kunden",p:"kunder",dp:"kunderna",en:"customer",pl:"klient",ex:""},
+ {sv:"kvinna",a:"en",d:"kvinnan",p:"kvinnor",dp:"kvinnorna",en:"woman",pl:"kobieta",ex:""},
+ {sv:"man",a:"en",d:"mannen",p:"män",dp:"männen",en:"man",pl:"mężczyzna",ex:""},
+ {sv:"matte",a:"en",d:"matten",p:"mattar",dp:"mattarna",en:"dog owner (female)",pl:"właścicielka (psa)",ex:""},
+ {sv:"olycka",a:"en",d:"olyckan",p:"olyckor",dp:"olyckorna",en:"accident",pl:"wypadek",ex:"Jag råkade ut för en olycka igår."},
+ {sv:"paket",a:"ett",d:"paketet",p:"paket",dp:"paketen",en:"parcel",pl:"paczka",ex:"Jag har ett paket att hämta ut."},
+ {sv:"svar",a:"ett",d:"svaret",p:"svar",dp:"svaren",en:"answer",pl:"odpowiedź",ex:"Jag har inte fått något svar än."},
+ {sv:"valp",a:"en",d:"valpen",p:"valpar",dp:"valparna",en:"puppy",pl:"szczeniak",ex:""},
+ {sv:"vilja",a:"en",d:"viljan",p:"viljor",dp:"viljorna",en:"will",pl:"wola",ex:"En fri vilja. Min fria vilja."},
+ {sv:"vovve",a:"en",d:"vovven",p:"vovvar",dp:"vovvarna",en:"doggy (affectionate)",pl:"piesek (pieszczotliwie)",ex:"Åh vilken fin vovve!"}
+];
+var WORDS = [
+ {sv:"exalterad",c:"Adjective",en:"overexcited",pl:"podekscytowany",ex:""},
+ {sv:"heteronormativt",c:"Adverb",en:"heteronormatively",pl:"heteronormatywnie",ex:""},
+ {sv:"icke-binär",c:"Adjective",en:"non-binary",pl:"osoba niebinarna",ex:"Icke-binära (plural)."},
+ {sv:"javisst",c:"Other",en:"of course, certainly",pl:"oczywiście",ex:""},
+ {sv:"känslokall",c:"Adjective",en:"cold, unfeeling",pl:"chłodny emocjonalnie",ex:"Du har blivit känslokall."},
+ {sv:"någon, något, några",c:"Pronoun",en:"any, some",pl:"jakiś, jakieś, kilka",ex:"Har du några pengar?"},
+ {sv:"rädd",c:"Adjective",en:"scared",pl:"przestraszony, bojący się",ex:"Hunden är rädd. Hon blir för exalterad, stressad eller rädd."},
+ {sv:"sjuk",c:"Adjective",en:"sick",pl:"chory",ex:"Jag blev sjuk igår."},
+ {sv:"stressad",c:"Adjective",en:"stressed",pl:"zestresowany",ex:""},
+ {sv:"tyvärr",c:"Adverb",en:"unfortunately",pl:"niestety",ex:"Nej, tyvärr.",star:true},
+ {sv:"äldre",c:"Adjective",en:"elderly, older",pl:"starszy",ex:"En äldre dam, en äldre herre."},
+ {sv:"än",c:"Adverb",en:"yet",pl:"jeszcze, już (w pytaniach)",ex:"Har du varit på toa än?",star:true}
+];
+var PHRASES = [
+ {sv:"Du har blivit känslokall.",en:"You have become cold.",pl:"Zrobiłaś się chłodna.",g:"har blivit"},
+ {sv:"Får jag klappa hunden?",en:"May I pet the dog?",pl:"Czy mogę pogłaskać psa?",g:"få = may"},
+ {sv:"Har du varit på toa än?",en:"Have you been to the toilet yet?",pl:"Czy już byłaś w toalecie?",g:"har + supine, än"},
+ {sv:"Hon blir för exalterad, stressad eller rädd.",en:"She gets too excited, stressed or scared.",pl:"Robi się zbyt podekscytowana, zestresowana albo przestraszona.",g:"bli + adjective"},
+ {sv:"Hon kommer från ett hundhem på Irland.",en:"She comes from a dog shelter in Ireland.",pl:"Pochodzi ze schroniska w Irlandii.",g:"på + island, i + country"},
+ {sv:"Hundar får inte kissa här.",en:"Dogs are not allowed to pee here.",pl:"Psy nie mogą tu siusiać.",g:"får inte"},
+ {sv:"Jag blev sjuk i måndags, så nu har jag varit sjuk i en vecka.",en:"I got sick last Monday, so now I have been sick for a week.",pl:"Zachorowałam w zeszły poniedziałek, więc jestem chora od tygodnia.",g:"blev (past) versus har varit (perfect), i måndags"},
+ {sv:"Jag har inte fått något svar än.",en:"I have not received an answer yet.",pl:"Nie dostałam jeszcze odpowiedzi.",g:"har fått, något"},
+ {sv:"Jag har inte kunnat nå dig.",en:"I have not been able to reach you.",pl:"Nie mogłam się z tobą skontaktować.",g:"har kunnat"},
+ {sv:"Jag har inte köpt julklappar än.",en:"I have not bought Christmas presents yet.",pl:"Jeszcze nie kupiłam prezentów świątecznych.",g:"inte ... än"},
+ {sv:"Jag kommer att åka till Polen i år.",en:"I will go to Poland this year.",pl:"W tym roku pojadę do Polski.",g:"kommer att (future)"},
+ {sv:"Jag når inte till skåpet.",en:"I cannot reach the cupboard.",pl:"Nie sięgam do szafki.",g:"nå",star:true},
+ {sv:"Jag råkade ut för en olycka igår.",en:"I had an accident yesterday.",pl:"Wczoraj miałam wypadek.",g:"råka ut för, past simple"},
+ {sv:"Jag skulle vilja ha en kaffe och en kanelbulle.",en:"I would like a coffee and a cinnamon bun.",pl:"Poproszę kawę i bułkę cynamonową.",g:"skulle vilja",star:true},
+ {sv:"Jag skulle vilja hämta ut ett paket.",en:"I would like to pick up a parcel.",pl:"Chciałabym odebrać paczkę.",g:"hämta ut"},
+ {sv:"Jag skulle vilja lämna tillbaka paketet.",en:"I would like to return the parcel.",pl:"Chciałabym oddać paczkę.",g:"lämna tillbaka"},
+ {sv:"Jag skulle vilja åka till Paris i år.",en:"I would like to go to Paris this year.",pl:"Chciałabym pojechać w tym roku do Paryża.",g:"vill versus skulle vilja"},
+ {sv:"Javisst. Ja, absolut.",en:"Of course. Yes, absolutely.",pl:"Oczywiście. Tak, absolutnie.",g:"",star:true},
+ {sv:"Kan du prata långsammare?",en:"Can you speak more slowly?",pl:"Czy możesz mówić wolniej?",g:"comparative, kunna"},
+ {sv:"Kan jag få en bajspåse från dig?",en:"Can I get a poop bag from you?",pl:"Czy mogę dostać od ciebie woreczek na psie odchody?",g:"få = get"},
+ {sv:"Nej, du får inte klappa hunden.",en:"No, you may not pet the dog.",pl:"Nie, nie wolno głaskać psa.",g:"får inte = not allowed"},
+ {sv:"Nej, tyvärr.",en:"No, unfortunately.",pl:"Nie, niestety.",g:"",star:true},
+ {sv:"Ring mig ifall det blir några problem.",en:"Call me in case there are any problems.",pl:"Zadzwoń do mnie, gdyby były jakieś problemy.",g:"ifall, blir, några"},
+ {sv:"Skulle du kunna prata långsammare?",en:"Could you speak more slowly?",pl:"Czy mogłabyś mówić wolniej?",g:"skulle + kunna (polite)"},
+ {sv:"Skulle jag kunna få en bajspåse?",en:"Could I get a poop bag?",pl:"Czy mogłabym dostać woreczek?",g:"skulle kunna (polite)"},
+ {sv:"Vi kan gå på bio om du vill.",en:"We can go to the cinema if you want.",pl:"Możemy iść do kina, jeśli chcesz.",g:"om = if",star:true},
+ {sv:"Vi tog henne när hon var 11 månader gammal.",en:"We took her when she was 11 months old.",pl:"Wzięliśmy ją, gdy miała 11 miesięcy.",g:"tog (past of ta)"}
+];
+var DECKS = {
+  verbs:   {label:"Verbs",   items:VERBS,   forms:true},
+  nouns:   {label:"Nouns",   items:NOUNS,   forms:true},
+  words:   {label:"Other words", items:WORDS, forms:false},
+  phrases: {label:"Phrases", items:PHRASES, forms:false}
+};
+var MODES = {svpl:"Swedish → Polish", plsv:"Polish → Swedish", forms:"Forms"};
+var FILTERS = {all:"All", todo:"Not known yet", learning:"Learning", known:"Known", star:"Important"};
+
+/* ---------- State ---------- */
+var KEY = "sv-flashcards-v1";
+var marks = {};
+try { marks = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { marks = {}; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (e) {} }
+
+Object.keys(DECKS).forEach(function (k) { DECKS[k].items.forEach(function (it, n) { it.id = k + ":" + it.sv; }); });
+
+var S = { deck: "verbs", mode: "svpl", filter: "all", i: 0, flipped: false, order: {} };
+
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function markOf(it) { var m = marks[it.id]; return m && m.s ? m.s : ""; }
+function starOf(it) { var m = marks[it.id]; return m && typeof m.star === "boolean" ? m.star : !!it.star; }
+function setMark(it, s) { var m = marks[it.id] || {}; m.s = s; marks[it.id] = m; save(); }
+function setStar(it, v) { var m = marks[it.id] || {}; m.star = v; marks[it.id] = m; save(); }
+
+function ordered() {
+  var d = DECKS[S.deck], base = d.items.slice();
+  var o = S.order[S.deck];
+  if (o) base.sort(function (a, b) { return o.indexOf(a.id) - o.indexOf(b.id); });
+  return base;
+}
+function visible() {
+  return ordered().filter(function (it) {
+    var m = markOf(it);
+    if (S.filter === "all") return true;
+    if (S.filter === "todo") return m !== "known";
+    if (S.filter === "learning") return m === "learning";
+    if (S.filter === "known") return m === "known";
+    if (S.filter === "star") return starOf(it);
+    return true;
+  });
+}
+
+/* ---------- Rendering ---------- */
+function seg(el, map, current, onPick, extra) {
+  el.innerHTML = "";
+  Object.keys(map).forEach(function (k) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-pressed", k === current ? "true" : "false");
+    var label = typeof map[k] === "string" ? map[k] : map[k].label;
+    b.textContent = label;
+    if (extra) { var n = extra(k); if (n !== undefined) { var s = document.createElement("span"); s.className = "n"; s.textContent = n; b.appendChild(s); } if (extra.disabled && extra.disabled(k)) b.disabled = true; }
+    b.addEventListener("click", function () { onPick(k); });
+    el.appendChild(b);
+  });
+}
+
+function chipsFor(it) {
+  var c = [];
+  if (S.deck === "verbs") c.push('<span class="chip ' + (it.t === "Irregular" ? "irr" : "reg") + '">' + esc(it.t) + '</span>');
+  if (S.deck === "nouns") c.push('<span class="chip">Noun</span>');
+  if (S.deck === "words") c.push('<span class="chip">' + esc(it.c) + '</span>');
+  if (S.deck === "phrases" && it.g) c.push('<span class="chip">' + esc(it.g) + '</span>');
+  if (starOf(it)) c.push('<span class="chip star">Important</span>');
+  var m = markOf(it);
+  if (m === "known") c.push('<span class="chip known">Known</span>');
+  if (m === "learning") c.push('<span class="chip learn">Learning</span>');
+  return '<div class="chips">' + c.join("") + '</div>';
+}
+function exBlock(it) { return it.ex ? '<div><div class="sec">Example</div><div class="ex">' + esc(it.ex) + '</div></div>' : ""; }
+
+function verbForms(it) {
+  var rows = [["Present", it.f[0]], ["Past", it.f[1]], ["Perfect", it.f[2]]];
+  if (it.imp) rows.push(["Imperative", it.imp]);
+  return '<table class="forms"><tbody>' + rows.map(function (r) { return '<tr><th scope="row">' + r[0] + '</th><td><b>' + esc(r[1]) + '</b></td></tr>'; }).join("") + '</tbody></table>';
+}
+function nounForms(it) {
+  var rows = [["Indefinite", it.a + " " + it.sv], ["Definite", it.d], ["Plural", it.p], ["Definite plural", it.dp]];
+  return '<table class="forms"><tbody>' + rows.map(function (r) { return '<tr><th scope="row">' + r[0] + '</th><td><b>' + esc(r[1]) + '</b></td></tr>'; }).join("") + '</tbody></table>';
+}
+
+function faces(it) {
+  var d = S.deck, mode = DECKS[d].forms ? S.mode : (S.mode === "forms" ? "svpl" : S.mode);
+  var front = "", back = "";
+  var title = d === "nouns" ? it.a + " " + it.sv : it.sv;
+  if (mode === "svpl") {
+    front = chipsFor(it) + '<p class="big">' + esc(title) + '</p><div class="hint">Say it in Polish, then flip.</div>';
+    if (d === "phrases") {
+      back = chipsFor(it) + '<p class="ans">' + esc(it.pl) + '</p><div class="mean">' + esc(it.en) + '</div><div class="note">' + (it.g ? "Grammar: " + esc(it.g) : "") + '</div>';
+    } else {
+      back = chipsFor(it) + '<p class="ans">' + esc(it.pl) + '</p><div class="mean">' + esc(it.en) + '</div>' + exBlock(it) + (it.note ? '<div class="note">' + esc(it.note) + '</div>' : "");
+    }
+  } else if (mode === "plsv") {
+    var big = d === "phrases" ? it.pl : it.pl;
+    front = chipsFor(it).replace(/<span class="chip (known|learn|star)">[^<]*<\/span>/g, "") + '<p class="big ' + (d === "phrases" ? "sm" : "") + '">' + esc(big) + '</p><div class="mean">' + esc(it.en) + '</div><div class="hint">Say it in Swedish, then flip.</div>';
+    if (d === "verbs") back = chipsFor(it) + '<p class="ans sv">' + esc(it.sv) + '</p>' + verbForms(it) + exBlock(it);
+    else if (d === "nouns") back = chipsFor(it) + '<p class="ans sv">' + esc(title) + '</p>' + nounForms(it) + exBlock(it);
+    else if (d === "phrases") back = chipsFor(it) + '<p class="ans sv">' + esc(it.sv) + '</p>' + (it.g ? '<div class="note">Grammar: ' + esc(it.g) + '</div>' : "");
+    else back = chipsFor(it) + '<p class="ans sv">' + esc(it.sv) + '</p>' + exBlock(it);
+  } else {
+    if (d === "verbs") {
+      front = chipsFor(it).replace(/<span class="chip (irr|reg)">[^<]*<\/span>/, "") + '<p class="big">' + esc(it.sv) + '</p><div class="mean">' + esc(it.en) + '</div><div class="hint">Say present, past and perfect, then flip.</div>';
+      back = chipsFor(it) + '<p class="ans sv">' + esc(it.sv) + '</p>' + verbForms(it) + '<div class="note">Same form for jag, du, hon/han/hen, vi, ni and de.</div>' + exBlock(it);
+    } else {
+      front = chipsFor(it).replace(/<span class="chip">Noun<\/span>/, "") + '<p class="big">' + esc(it.sv) + '</p><div class="mean">' + esc(it.en) + ' - ' + esc(it.pl) + '</div><div class="hint">Say en or ett, then all four forms, then flip.</div>';
+      back = chipsFor(it) + '<p class="ans sv">' + esc(title) + '</p>' + nounForms(it) + exBlock(it);
+    }
+  }
+  return {front: front, back: back};
+}
+
+function render() {
+  var list = visible(), all = DECKS[S.deck].items;
+  if (S.i >= list.length) S.i = Math.max(0, list.length - 1);
+
+  seg(document.getElementById("decks"), DECKS, S.deck, function (k) { S.deck = k; S.i = 0; S.flipped = false; if (!DECKS[k].forms && S.mode === "forms") S.mode = "svpl"; render(); }, function (k) { return DECKS[k].items.length; });
+  var modes = document.getElementById("modes");
+  var ex = function () { return undefined; };
+  ex.disabled = function (k) { return k === "forms" && !DECKS[S.deck].forms; };
+  seg(modes, MODES, S.mode, function (k) { S.mode = k; S.flipped = false; render(); }, ex);
+  seg(document.getElementById("filters"), FILTERS, S.filter, function (k) { S.filter = k; S.i = 0; S.flipped = false; render(); }, function (k) {
+    return all.filter(function (it) { var m = markOf(it); return k === "all" ? true : k === "todo" ? m !== "known" : k === "learning" ? m === "learning" : k === "known" ? m === "known" : starOf(it); }).length;
+  });
+
+  var known = all.filter(function (it) { return markOf(it) === "known"; }).length;
+  var learning = all.filter(function (it) { return markOf(it) === "learning"; }).length;
+  document.getElementById("track").innerHTML = '<i class="k" style="width:' + (known / all.length * 100) + '%"></i><i class="l" style="width:' + (learning / all.length * 100) + '%"></i>';
+  document.getElementById("prog").textContent = known + " known, " + learning + " learning, " + (all.length - known - learning) + " new";
+  document.getElementById("sub").textContent = DECKS[S.deck].label + " deck, " + all.length + " cards";
+
+  var main = document.getElementById("main"), controls = document.getElementById("controls");
+  var starBtn = document.getElementById("star");
+  if (!list.length) {
+    main.innerHTML = '<div class="empty"><strong>No cards here</strong>Change the Show filter to see more cards.</div>';
+    controls.style.display = "none"; starBtn.disabled = true;
+    document.getElementById("count").textContent = "0 of 0";
+    document.getElementById("prev").disabled = true; document.getElementById("next").disabled = true;
+    return;
+  }
+  controls.style.display = ""; starBtn.disabled = false;
+  var it = list[S.i], f = faces(it);
+  main.innerHTML = '<button class="card" id="card" type="button" data-flipped="' + S.flipped + '" aria-label="Flashcard. Press to flip.">' +
+    '<div class="inner"><div class="face front" aria-hidden="' + S.flipped + '">' + f.front + '</div><div class="face back" aria-hidden="' + (!S.flipped) + '">' + f.back + '</div></div></button>';
+  document.getElementById("card").addEventListener("click", flip);
+  document.getElementById("count").textContent = (S.i + 1) + " of " + list.length;
+  document.getElementById("prev").disabled = list.length < 2; document.getElementById("next").disabled = list.length < 2;
+  var on = starOf(it);
+  starBtn.setAttribute("aria-pressed", on); starBtn.textContent = on ? "Important (on)" : "Mark important";
+}
+
+function flip() { S.flipped = !S.flipped; var c = document.getElementById("card"); if (c) { c.setAttribute("data-flipped", S.flipped); c.querySelector(".front").setAttribute("aria-hidden", S.flipped); c.querySelector(".back").setAttribute("aria-hidden", !S.flipped); } }
+function go(d) { var n = visible().length; if (!n) return; S.i = (S.i + d + n) % n; S.flipped = false; render(); }
+function mark(s) {
+  var list = visible(); if (!list.length) return;
+  var it = list[S.i]; setMark(it, s);
+  var after = visible(), still = after.indexOf(it);
+  if (still >= 0) S.i = (still + 1) % after.length; else S.i = Math.min(S.i, Math.max(0, after.length - 1));
+  S.flipped = false; render();
+}
+function toggleStar() { var list = visible(); if (!list.length) return; var it = list[S.i]; setStar(it, !starOf(it)); render(); }
+
+function shuffle() {
+  var ids = DECKS[S.deck].items.map(function (x) { return x.id; });
+  for (var i = ids.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = ids[i]; ids[i] = ids[j]; ids[j] = t; }
+  S.order[S.deck] = ids; S.i = 0; S.flipped = false; render();
+}
+document.getElementById("shuffle").addEventListener("click", shuffle);
+document.getElementById("reset").addEventListener("click", function () { delete S.order[S.deck]; S.i = 0; S.flipped = false; render(); });
+document.getElementById("prev").addEventListener("click", function () { go(-1); });
+document.getElementById("next").addEventListener("click", function () { go(1); });
+document.getElementById("btnLearn").addEventListener("click", function () { mark("learning"); });
+document.getElementById("btnKnow").addEventListener("click", function () { mark("known"); });
+document.getElementById("star").addEventListener("click", toggleStar);
+document.addEventListener("keydown", function (e) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  var tag = (e.target && e.target.tagName) || "";
+  if (e.key === " " && tag !== "BUTTON") { e.preventDefault(); flip(); }
+  else if (e.key === "ArrowRight") { go(1); }
+  else if (e.key === "ArrowLeft") { go(-1); }
+  else if (e.key === "1") { mark("learning"); }
+  else if (e.key === "2") { mark("known"); }
+  else if (e.key === "s" || e.key === "S") { toggleStar(); }
+});
+
+render();
+</script>
+</body>
+</html>
